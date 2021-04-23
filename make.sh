@@ -1,19 +1,55 @@
 #!/bin/bash
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+PROJECT="$(basename "$DIR")"
+MODMAIN="$DIR/main.ts"
+INSTALL_TARGET="/usr/local/bin/$PROJECT"
+PERMS='--allow-run --allow-write --allow-env'
+
+_compile() {
+    [[ -f "$PROJECT" ]] && rm -v "$PROJECT"
+    deno compile --unstable $PERMS "$MODMAIN"
+}
+
+_run() {
+    deno run $PERMS "$MODMAIN"
+}
+
+_bundle() {
+    [[ -f "$PROJECT.bundle.js" ]] && rm -v "$PROJECT.bundle.js"
+    deno bundle "$MODMAIN" "$PROJECT.bundle.js"
+}
+
+_install() {
+    mv -vf "$PROJECT" "$INSTALL_TARGET"
+}
+
+_uninstall() {
+    rm -v "$INSTALL_TARGET"
+}
+
 denomake() {
     local verb="$1"
-    local project
-    project="$(basename "$DIR")"
-    printf '\n=== Running: \033[94;1;4m%s\033[0m ===\n' "$verb"
+
+    printf '\n=== Execute: \033[94;1;4m%s\033[0m ===\n' "$verb"
     case "$verb" in
     run)
-        deno run --allow-run --allow-write "$DIR/main.ts"
+        _run
         ;;
-    build)
-        deno bundle main.ts "$project.bundle.js"
+    compile)
+        _compile
+        ;;
+    bundle)
+        _bundle
+        ;;
+    install)
+        _compile
+        _install
+        ;;
+    uninstall)
+        _uninstall
         ;;
     *)
-        printf 'Unknown verb: %s\n' "$verb" >&2
+        printf 'Unknown action: %s\n' "$verb" >&2
         exit 1
         ;;
     esac
